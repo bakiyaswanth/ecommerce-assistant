@@ -262,36 +262,43 @@ with st.expander("🔧 System Status — click to check", expanded=not st.sessio
 # -- Sidebar with info --
 with st.sidebar:
     st.markdown("### ⚙️ Settings")
-    st.caption(f"**Session ID:** `{st.session_state.session_id[:8]}...`")
+    st.markdown("### ⚙️ Main Settings")
+    with st.form("settings_form"):
+        st.markdown("#### 🔑 Gemini API Key")
+        st.caption("Please securely enter your Gemini API Key to chat with the assistant.")
+        st.text_input(
+            "API Key", 
+            type="password", 
+            key="custom_api_key",
+            placeholder="AIzaSy..."
+        )
+        
+        st.markdown("#### 🧠 AI Engine")
+        st.selectbox(
+            "Model Version",
+            options=[
+                "gemini-3.1-flash-lite",
+                "gemini-3-flash",
+                "gemini-2.5-flash",
+                "gemini-2.5-flash-lite",
+                "gemini-2.5-pro",
+                "gemini-2.0-flash",
+                "gemini-2.0-pro-exp",
+                "gemini-1.5-flash",
+                "gemini-1.5-pro",
+                "gemini-exp-1206"
+            ],
+            index=0,
+            key="selected_model",
+            help="Higher tier models (Pro) provide better reasoning."
+        )
 
-    st.markdown("### 🔑 Gemini API Key")
-    st.caption("Please securely enter your Gemini API Key to chat with the assistant.")
-    st.text_input(
-        "API Key", 
-        type="password", 
-        key="custom_api_key",
-        placeholder="AIzaSy..."
-    )
-
-    st.markdown("### 🧠 AI Engine")
-    st.selectbox(
-        "Model Version",
-        options=[
-            "gemini-3.1-flash-lite",
-            "gemini-3-flash",
-            "gemini-2.5-flash",
-            "gemini-2.5-flash-lite",
-            "gemini-2.5-pro",
-            "gemini-2.0-flash",
-            "gemini-2.0-pro-exp",
-            "gemini-1.5-flash",
-            "gemini-1.5-pro",
-            "gemini-exp-1206"
-        ],
-        index=0,
-        key="selected_model",
-        help="Higher tier models (Pro) provide better reasoning. Experimental (exp) models test cutting-edge capabilities!"
-    )
+        settings_submit = st.form_submit_button("Save Settings", use_container_width=True)
+        if settings_submit:
+            if st.session_state.get("custom_api_key"):
+                st.success("✅ Settings updated securely!")
+            else:
+                st.error("⚠️ Key cannot be empty.")
 
     st.divider()
 

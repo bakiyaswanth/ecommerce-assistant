@@ -124,38 +124,35 @@ def query_products(question: str) -> str:
 # Shared session service (in-memory, per container instance)
 session_service = InMemorySessionService()
 
-# The ADK Agent
-shopping_agent = Agent(
-    name="shopping_assistant",
-    model="gemini-2.5-flash",
-    instruction=SYSTEM_INSTRUCTION,
-    tools=[query_products],
-    description="An AI shopping assistant that helps users find and compare e-commerce products.",
-)
-
-# The Runner executes the agent
-runner = Runner(
-    agent=shopping_agent,
-    app_name="ecommerce_product_scout",
-    session_service=session_service,
-)
-
-
 async def chat(session_id: str, user_message: str, model_name: str = "gemini-2.5-flash") -> str:
     """
     Send a user message to the Shopping Assistant and return its response.
 
-    # Dynamically update the agent's model based on user selection
-    shopping_agent.model = model_name
-
     Args:
         session_id:   Unique identifier for this chat session.
         user_message: The user's message text.
+        model_name:   The Gemini model chosen by the user.
 
     Returns:
         The agent's response as a string.
     """
     from google.genai import types
+
+    # Dynamically build the Agent using the requested model
+    shopping_agent = Agent(
+        name="shopping_assistant",
+        model=model_name,
+        instruction=SYSTEM_INSTRUCTION,
+        tools=[query_products],
+        description="An AI shopping assistant.",
+    )
+
+    # Initialize a temporary runner for this exact workflow
+    runner = Runner(
+        agent=shopping_agent,
+        app_name="ecommerce_product_scout",
+        session_service=session_service,
+    )
 
     # Ensure session exists
     session = await session_service.get_session(
