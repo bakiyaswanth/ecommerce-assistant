@@ -1,0 +1,30 @@
+# E-commerce Scout - Git Ignore
+# ============================================
+
+# Environment
+.env
+.env.local
+.env.*.local
+venv/
+.venv/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Streamlit
+.streamlit/secrets.toml

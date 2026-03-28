@@ -1,0 +1,49 @@
+# Cloud Build configuration for GitHub-triggered deployments
+# This file is automatically used when deploying via Cloud Run's GitHub integration
+
+steps:
+  # Build the Docker image
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO_NAME}/ecommerce-scout:${COMMIT_SHA}'
+      - '.'
+
+  # Push to Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO_NAME}/ecommerce-scout:${COMMIT_SHA}'
+
+  # Deploy to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'gcloud'
+    args:
+      - 'run'
+      - 'deploy'
+      - 'ecommerce-scout'
+      - '--image=${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO_NAME}/ecommerce-scout:${COMMIT_SHA}'
+      - '--region=${_REGION}'
+      - '--platform=managed'
+      - '--port=8080'
+      - '--memory=1Gi'
+      - '--cpu=1'
+      - '--timeout=300'
+      - '--min-instances=0'
+      - '--max-instances=3'
+      - '--vpc-connector=${_VPC_CONNECTOR}'
+      - '--allow-unauthenticated'
+
+# Substitution variables (override via Cloud Build trigger settings)
+substitutions:
+  _REGION: 'us-central1'
+  _REPO_NAME: 'ecommerce-repo'
+  _VPC_CONNECTOR: 'ecommerce-connector'
+
+# Use Artifact Registry for the built image
+images:
+  - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO_NAME}/ecommerce-scout:${COMMIT_SHA}'
+
+# Build timeout
+timeout: '900s'
