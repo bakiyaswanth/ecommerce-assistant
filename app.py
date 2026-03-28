@@ -215,20 +215,31 @@ with st.sidebar:
     st.markdown("### ⚙️ Settings")
     st.caption(f"**Session ID:** `{st.session_state.session_id[:8]}...`")
 
-    # Health check
-    if st.button("🔄 Check Backend", use_container_width=True):
-        st.session_state.backend_healthy = check_backend_health()
+    # Diagnostic check
+    if st.button("🔍 Run Diagnostics", use_container_width=True):
+        with st.spinner("Checking..."):
+            # Check 1: FastAPI reachable?
+            try:
+                resp = requests.get(f"{BACKEND_URL}/health", timeout=10)
+                if resp.status_code == 200:
+                    health_data = resp.json()
+                    st.success(f"✅ Backend: Online")
+                    db_status = health_data.get("database", "unknown")
+                    if db_status == "connected":
+                        st.success(f"✅ Database: Connected")
+                    else:
+                        st.error(f"❌ Database: {db_status}")
+                        st.info("💡 Check: VPC connector, DB_HOST, DB_USER, DB_PASS env vars")
+                else:
+                    st.error(f"❌ Backend returned: {resp.status_code}")
+                    st.code(resp.text[:500])
+            except requests.ConnectionError:
+                st.error("❌ Backend: Unreachable (FastAPI not running on port 8000)")
+            except Exception as e:
+                st.error(f"❌ Backend error: {str(e)}")
 
-    if st.session_state.backend_healthy is True:
-        st.markdown(
-            '<span class="status-badge status-online">🟢 Backend Online</span>',
-            unsafe_allow_html=True,
-        )
-    elif st.session_state.backend_healthy is False:
-        st.markdown(
-            '<span class="status-badge status-offline">🔴 Backend Offline</span>',
-            unsafe_allow_html=True,
-        )
+        # Show env info
+        st.caption(f"Backend URL: `{BACKEND_URL}`")
 
     st.divider()
 

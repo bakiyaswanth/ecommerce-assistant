@@ -112,8 +112,9 @@ def query_products(question: str) -> str:
         return "\n".join(formatted_lines)
 
     except Exception as e:
-        logger.error("Error in query_products tool: %s", e, exc_info=True)
-        return f"I encountered an error searching the product catalog: {str(e)}. Please try rephrasing your question."
+        error_msg = str(e)
+        logger.error("Error in query_products tool: %s", error_msg, exc_info=True)
+        return f"Database query error: {error_msg}. The query was: '{question}'. Please try a different search."
 
 
 # ---------------------------------------------------------------------------

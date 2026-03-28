@@ -3,12 +3,18 @@ Database connection and query helper for AlloyDB.
 
 Uses psycopg2 with connection pooling. All credentials are sourced
 from environment variables to support Cloud Run deployment.
+
+Supports two query modes:
+1. AlloyDB AI NL (alloydb_ai_nl extension) — natural language to SQL
+2. Fallback SQL — keyword/price-based search using ILIKE
 """
 
 import os
 import json
 import logging
+import re
 from contextlib import contextmanager
+from decimal import Decimal
 
 import psycopg2
 from psycopg2 import pool, extras
@@ -62,8 +68,7 @@ def get_connection():
 
 def execute_nl_query(question: str) -> list[dict]:
     """
-    Convert a natural-language question into SQL using AlloyDB AI NL
-    (`ecommerce_cfg` configuration) and execute it.
+    Try AlloyDB AI NL first; if unavailable, fall back to keyword search.
 
     Args:
         question: User's natural-language product question.
@@ -71,9 +76,21 @@ def execute_nl_query(question: str) -> list[dict]:
     Returns:
         A list of dicts, one per result row.
     """
+    # Try alloydb_ai_nl first
+    try:
+        return _nl_query(question)
+    except Exception as e:
+        logger.warning(
+            "alloydb_ai_nl query failed (falling back to SQL search): %s", e
+        )
+        # Fallback to keyword-based SQL search
+        return _fallback_search(question)
+
+
+def _nl_query(question: str) -> list[dict]:
+    """Use alloydb_ai_nl extension to convert NL to SQL."""
     with get_connection() as conn:
         with conn.cursor(cursor_factory=extras.RealDictCursor) as cur:
-            # alloydb_ai_nl.textual_sql_query returns a JSONB result set
             cur.execute(
                 "SELECT alloydb_ai_nl.textual_sql_query('ecommerce_cfg', %s) AS result;",
                 (question,),
@@ -98,23 +115,100 @@ def execute_nl_query(question: str) -> list[dict]:
             return result
 
 
+def _fallback_search(question: str) -> list[dict]:
+    """
+    Fallback search using SQL ILIKE and price filters.
+    Parses the question for keywords, categories, and price constraints.
+    """
+    question_lower = question.lower()
+
+    conditions = []
+    params = []
+
+    # Extract price constraints (e.g., "under $50", "below 100", "less than $200")
+    price_match = re.search(
+        r'(?:under|below|less than|cheaper than|max|up to)\s*\$?\s*(\d+(?:\.\d{2})?)',
+        question_lower,
+    )
+    if price_match:
+        max_price = float(price_match.group(1))
+        conditions.append("price <= %s")
+        params.append(max_price)
+
+    # Extract "above/over/more than $X"
+    price_above = re.search(
+        r'(?:above|over|more than|at least|min|starting)\s*\$?\s*(\d+(?:\.\d{2})?)',
+        question_lower,
+    )
+    if price_above:
+        min_price = float(price_above.group(1))
+        conditions.append("price >= %s")
+        params.append(min_price)
+
+    # Extract category keywords
+    categories = ["electronics", "clothing", "home", "sports", "books"]
+    for cat in categories:
+        if cat in question_lower:
+            conditions.append("LOWER(category) = %s")
+            params.append(cat)
+
+    # Extract search keywords (remove common stop words and price terms)
+    stop_words = {
+        "show", "me", "find", "search", "list", "get", "what", "which",
+        "the", "a", "an", "is", "are", "do", "you", "have", "all",
+        "products", "items", "things", "stuff", "under", "below", "above",
+        "over", "less", "more", "than", "cheapest", "cheap", "expensive",
+        "best", "top", "for", "and", "or", "in", "with", "to", "of",
+        "price", "priced", "cost", "costs", "between", "from",
+    }
+
+    # Remove price patterns before extracting keywords
+    cleaned = re.sub(r'\$\d+(?:\.\d{2})?', '', question_lower)
+    cleaned = re.sub(r'\d+(?:\.\d{2})?', '', cleaned)
+    words = [w.strip("?!.,") for w in cleaned.split() if w.strip("?!.,")]
+    keywords = [w for w in words if w not in stop_words and len(w) > 2]
+
+    for keyword in keywords:
+        conditions.append(
+            "(LOWER(name) LIKE %s OR LOWER(description) LIKE %s OR LOWER(category) LIKE %s)"
+        )
+        pattern = f"%{keyword}%"
+        params.extend([pattern, pattern, pattern])
+
+    # Build query
+    where_clause = " AND ".join(conditions) if conditions else "TRUE"
+
+    sql = f"""
+        SELECT id, name, description, category, price
+        FROM products
+        WHERE {where_clause}
+        ORDER BY price ASC
+        LIMIT 20;
+    """
+
+    logger.info("Fallback SQL: %s | params: %s", sql.strip(), params)
+
+    return execute_raw_query(sql, tuple(params) if params else None)
+
+
 def execute_raw_query(sql: str, params: tuple | None = None) -> list[dict]:
     """
     Execute a raw SQL query and return rows as dicts.
-
-    Args:
-        sql:    SQL string (may contain %s placeholders).
-        params: Optional tuple of parameters for the query.
-
-    Returns:
-        A list of dicts, one per result row.
     """
     with get_connection() as conn:
         with conn.cursor(cursor_factory=extras.RealDictCursor) as cur:
             cur.execute(sql, params)
             if cur.description is None:
                 return []
-            return [dict(row) for row in cur.fetchall()]
+            # Convert Decimal to float for JSON serialization
+            rows = []
+            for row in cur.fetchall():
+                row_dict = dict(row)
+                for key, value in row_dict.items():
+                    if isinstance(value, Decimal):
+                        row_dict[key] = float(value)
+                rows.append(row_dict)
+            return rows
 
 
 def check_connection() -> bool:
