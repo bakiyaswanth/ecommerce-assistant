@@ -277,15 +277,20 @@ with st.sidebar:
     st.selectbox(
         "Model Version",
         options=[
+            "gemini-3.1-flash-lite",
+            "gemini-3-flash",
             "gemini-2.5-flash",
+            "gemini-2.5-flash-lite",
             "gemini-2.5-pro",
-            "gemini-2.0-flash-exp",
+            "gemini-2.0-flash",
+            "gemini-2.0-pro-exp",
             "gemini-1.5-flash",
-            "gemini-1.5-pro"
+            "gemini-1.5-pro",
+            "gemini-exp-1206"
         ],
         index=0,
         key="selected_model",
-        help="Higher-tier models answer slower but provide deeper reasoning."
+        help="Higher tier models (Pro) provide better reasoning. Experimental (exp) models test cutting-edge capabilities!"
     )
 
     st.divider()
