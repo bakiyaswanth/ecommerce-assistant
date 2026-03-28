@@ -141,9 +141,12 @@ runner = Runner(
 )
 
 
-async def chat(session_id: str, user_message: str) -> str:
+async def chat(session_id: str, user_message: str, model_name: str = "gemini-2.5-flash") -> str:
     """
     Send a user message to the Shopping Assistant and return its response.
+
+    # Dynamically update the agent's model based on user selection
+    shopping_agent.model = model_name
 
     Args:
         session_id:   Unique identifier for this chat session.

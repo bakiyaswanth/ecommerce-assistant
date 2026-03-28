@@ -177,6 +177,7 @@ def send_message(message: str) -> str:
         payload = {
             "message": message,
             "session_id": st.session_state.session_id,
+            "model": st.session_state.get("selected_model", "gemini-2.5-flash"),
         }
         if st.session_state.get("custom_api_key"):
             payload["api_key"] = st.session_state.custom_api_key
@@ -270,6 +271,21 @@ with st.sidebar:
         type="password", 
         key="custom_api_key",
         placeholder="AIzaSy..."
+    )
+
+    st.markdown("### 🧠 AI Engine")
+    st.selectbox(
+        "Model Version",
+        options=[
+            "gemini-2.5-flash",
+            "gemini-2.5-pro",
+            "gemini-2.0-flash-exp",
+            "gemini-1.5-flash",
+            "gemini-1.5-pro"
+        ],
+        index=0,
+        key="selected_model",
+        help="Higher-tier models answer slower but provide deeper reasoning."
     )
 
     st.divider()

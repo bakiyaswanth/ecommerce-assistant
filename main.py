@@ -104,6 +104,10 @@ class ChatRequest(BaseModel):
         None,
         description="Optional overriding API key from the user",
     )
+    model: str = Field(
+        "gemini-2.5-flash",
+        description="The AI model chosen by the user in the UI.",
+    )
 
 
 class ChatResponse(BaseModel):
@@ -150,10 +154,24 @@ async def chat_endpoint(request: ChatRequest):
             request.message[:80],
         )
 
-        response_text = await agent_config.chat(
-            session_id=request.session_id,
-            user_message=request.message,
-        )
+        try:
+            response_text = await agent_config.chat(
+                session_id=request.session_id,
+                user_message=request.message,
+                model_name=request.model,
+            )
+        except Exception as retry_e:
+            if "429" in str(retry_e) or "RESOURCE_EXHAUSTED" in str(retry_e):
+                logger.warning("Hit Gemini API rate limit! Retrying automatically in 3 seconds...")
+                import asyncio
+                await asyncio.sleep(3)
+                response_text = await agent_config.chat(
+                    session_id=request.session_id,
+                    user_message=request.message,
+                    model_name=request.model,
+                )
+            else:
+                raise retry_e
 
         return ChatResponse(
             response=response_text,
@@ -162,6 +180,13 @@ async def chat_endpoint(request: ChatRequest):
 
     except Exception as e:
         logger.error("Error processing chat request: %s", e, exc_info=True)
+        # Check if it STILL failed with 429
+        if "429" in str(e) or "RESOURCE_EXHAUSTED" in str(e):
+            raise HTTPException(
+                status_code=429,
+                detail="You have hit the free-tier API limit (5 requests per min). Please wait 60 seconds or use a premium API key.",
+            )
+        
         raise HTTPException(
             status_code=500,
             detail=f"An error occurred while processing your request: {str(e)}",
