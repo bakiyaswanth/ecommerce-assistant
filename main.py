@@ -15,14 +15,15 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from dotenv import load_dotenv
 
+# Load .env BEFORE importing modules that need env vars at init time
+load_dotenv()
+
 import db
 import agent_config
 
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
-
-load_dotenv()
 
 logging.basicConfig(
     level=logging.INFO,
