@@ -25,7 +25,7 @@ st.set_page_config(
     page_title="AI Product Scout",
     page_icon="🛒",
     layout="centered",
-    initial_sidebar_state="collapsed",
+    initial_sidebar_state="expanded",
 )
 
 # ---------------------------------------------------------------------------
@@ -45,7 +45,6 @@ st.markdown(
     /* Hide Streamlit branding */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
-    header {visibility: hidden;}
 
     /* Main container */
     .main .block-container {
