@@ -277,8 +277,6 @@ with st.sidebar:
         st.selectbox(
             "Model Version",
             options=[
-                "gemini-3.1-flash-lite",
-                "gemini-3-flash",
                 "gemini-2.5-flash",
                 "gemini-2.5-flash-lite",
                 "gemini-2.5-pro",
@@ -286,6 +284,8 @@ with st.sidebar:
                 "gemini-2.0-pro-exp",
                 "gemini-1.5-flash",
                 "gemini-1.5-pro",
+                "gemini-3.1-flash-lite",
+                "gemini-3-flash",
                 "gemini-exp-1206"
             ],
             index=0,
