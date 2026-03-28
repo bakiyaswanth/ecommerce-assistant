@@ -125,9 +125,9 @@ def _fallback_search(question: str) -> list[dict]:
     conditions = []
     params = []
 
-    # Extract price constraints (e.g., "under $50", "below 100", "less than $200")
+    # Extract price constraints
     price_match = re.search(
-        r'(?:under|below|less than|cheaper than|max|up to)\s*\$?\s*(\d+(?:\.\d{2})?)',
+        r'(?:under|below|less than|cheaper than|max|up to|under rs|under ₹)\s*(?:₹|rs\.?|inr)?\s*(\d+(?:\.\d{2})?)',
         question_lower,
     )
     if price_match:
@@ -135,9 +135,9 @@ def _fallback_search(question: str) -> list[dict]:
         conditions.append("price <= %s")
         params.append(max_price)
 
-    # Extract "above/over/more than $X"
+    # Extract "above/over/more than ₹X"
     price_above = re.search(
-        r'(?:above|over|more than|at least|min|starting)\s*\$?\s*(\d+(?:\.\d{2})?)',
+        r'(?:above|over|more than|at least|min|starting|above rs|above ₹)\s*(?:₹|rs\.?|inr)?\s*(\d+(?:\.\d{2})?)',
         question_lower,
     )
     if price_above:
@@ -163,8 +163,7 @@ def _fallback_search(question: str) -> list[dict]:
     }
 
     # Remove price patterns before extracting keywords
-    cleaned = re.sub(r'\$\d+(?:\.\d{2})?', '', question_lower)
-    cleaned = re.sub(r'\d+(?:\.\d{2})?', '', cleaned)
+    cleaned = re.sub(r'(?:₹|rs\.?|inr)?\s*\d+(?:\.\d{2})?', '', question_lower)
     words = [w.strip("?!.,") for w in cleaned.split() if w.strip("?!.,")]
     keywords = [w for w in words if w not in stop_words and len(w) > 2]
 

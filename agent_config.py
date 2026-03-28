@@ -46,17 +46,17 @@ SYSTEM_INSTRUCTION = """You are a friendly and knowledgeable **Shopping Assistan
 When listing products:
 > Here are some options I found:
 >
-> 1. **Product Name** — $XX.XX
+> 1. **Product Name** — ₹X,XXX
 >    _Brief description highlight_
 >
-> 2. **Product Name** — $XX.XX
+> 2. **Product Name** — ₹X,XXX
 >    _Brief description highlight_
 
 When comparing:
 > Comparing the two options:
 > | Feature | Product A | Product B |
 > |---------|-----------|-----------|
-> | Price   | $XX.XX    | $XX.XX    |
+> | Price   | ₹X,XXX    | ₹X,XXX    |
 """
 
 # ---------------------------------------------------------------------------

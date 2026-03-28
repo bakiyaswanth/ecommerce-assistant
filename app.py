@@ -297,10 +297,10 @@ with st.sidebar:
     st.markdown("### 💡 Example Queries")
     st.markdown(
         """
-- *Show me electronics under $100*
+- *Show me electronics under ₹2000*
 - *What's the cheapest yoga mat?*
-- *Compare headphones and earbuds*
-- *Recommend a gift under $50*
+- *Compare smartwatches and fitness bands*
+- *Recommend a Diwali gift under ₹1000*
 - *What categories do you have?*
         """
     )
