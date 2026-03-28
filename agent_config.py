@@ -126,7 +126,7 @@ session_service = InMemorySessionService()
 # The ADK Agent
 shopping_agent = Agent(
     name="shopping_assistant",
-    model="gemini-3.0-flash",
+    model="gemini-2.5-flash",
     instruction=SYSTEM_INSTRUCTION,
     tools=[query_products],
     description="An AI shopping assistant that helps users find and compare e-commerce products.",
