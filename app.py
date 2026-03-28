@@ -210,6 +210,51 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
+# -- System Status (auto-check on load) --
+if "diag_checked" not in st.session_state:
+    st.session_state.diag_checked = False
+    st.session_state.diag_result = None
+
+with st.expander("🔧 System Status — click to check", expanded=not st.session_state.diag_checked):
+    if st.button("Run Diagnostics", key="diag_btn"):
+        try:
+            resp = requests.get(f"{BACKEND_URL}/diag", timeout=15)
+            if resp.status_code == 200:
+                diag = resp.json()
+                st.session_state.diag_result = diag
+                st.session_state.diag_checked = True
+
+                # Show results
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.metric("Backend", "✅ Online")
+                    st.caption(f"DB Host: `{diag.get('db_host', '?')}`")
+                with col2:
+                    db_status = diag.get("db_connection", "?")
+                    if db_status == "SUCCESS":
+                        count = diag.get("product_count", "?")
+                        st.metric("Database", f"✅ {count} products")
+                    else:
+                        st.metric("Database", "❌ Failed")
+                        st.error(f"Connection error: {db_status}")
+
+                if "db_traceback" in diag:
+                    st.code(diag["db_traceback"], language="text")
+
+                # Show env vars status
+                st.caption(
+                    f"DB User: `{diag.get('db_user')}` | "
+                    f"DB Name: `{diag.get('db_name')}` | "
+                    f"Password set: {diag.get('db_pass_set')} | "
+                    f"API Key set: {diag.get('google_api_key_set')}"
+                )
+            else:
+                st.error(f"Backend returned: {resp.status_code}")
+        except requests.ConnectionError:
+            st.error("❌ Backend not reachable (FastAPI on port 8000)")
+        except Exception as e:
+            st.error(f"Error: {str(e)}")
+
 # -- Sidebar with info --
 with st.sidebar:
     st.markdown("### ⚙️ Settings")

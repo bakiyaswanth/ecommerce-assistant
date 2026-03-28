@@ -184,3 +184,37 @@ async def root():
         "chat_endpoint": "POST /chat",
         "health": "/health",
     }
+
+
+@app.get("/diag")
+async def diagnostics():
+    """Detailed diagnostics — tests DB connection and reports env var status."""
+    import traceback
+
+    results = {
+        "db_host": os.environ.get("DB_HOST", "NOT SET"),
+        "db_user": os.environ.get("DB_USER", "NOT SET"),
+        "db_name": os.environ.get("DB_NAME", "NOT SET"),
+        "db_port": os.environ.get("DB_PORT", "5432"),
+        "db_pass_set": bool(os.environ.get("DB_PASS")),
+        "google_project": os.environ.get("GOOGLE_CLOUD_PROJECT", "NOT SET"),
+        "google_api_key_set": bool(os.environ.get("GOOGLE_API_KEY")),
+    }
+
+    # Test DB connection
+    try:
+        db_ok = db.check_connection()
+        results["db_connection"] = "SUCCESS" if db_ok else "FAILED"
+    except Exception as e:
+        results["db_connection"] = f"ERROR: {str(e)}"
+        results["db_traceback"] = traceback.format_exc()
+
+    # Test product count
+    if results.get("db_connection") == "SUCCESS":
+        try:
+            rows = db.execute_raw_query("SELECT COUNT(*) as count FROM products;")
+            results["product_count"] = rows[0]["count"] if rows else 0
+        except Exception as e:
+            results["product_query_error"] = str(e)
+
+    return results
