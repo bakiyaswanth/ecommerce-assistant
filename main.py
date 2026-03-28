@@ -100,6 +100,10 @@ class ChatRequest(BaseModel):
         default_factory=lambda: str(uuid.uuid4()),
         description="Unique session identifier. Omit to start a new session.",
     )
+    api_key: str | None = Field(
+        None,
+        description="Optional overriding API key from the user",
+    )
 
 
 class ChatResponse(BaseModel):
@@ -136,6 +140,10 @@ async def chat_endpoint(request: ChatRequest):
     AlloyDB product catalog using natural language.
     """
     try:
+        if request.api_key:
+            # Dynamically override the key so the Google SDK uses it immediately
+            os.environ["GOOGLE_API_KEY"] = request.api_key
+
         logger.info(
             "Chat request — session=%s, message=%s",
             request.session_id,

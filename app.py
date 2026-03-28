@@ -175,12 +175,16 @@ def check_backend_health() -> bool:
 def send_message(message: str) -> str:
     """Send a message to the backend and return the response."""
     try:
+        payload = {
+            "message": message,
+            "session_id": st.session_state.session_id,
+        }
+        if st.session_state.get("custom_api_key"):
+            payload["api_key"] = st.session_state.custom_api_key
+
         resp = requests.post(
             f"{BACKEND_URL}/chat",
-            json={
-                "message": message,
-                "session_id": st.session_state.session_id,
-            },
+            json=payload,
             timeout=60,
         )
         resp.raise_for_status()
@@ -260,6 +264,17 @@ with st.sidebar:
     st.markdown("### ⚙️ Settings")
     st.caption(f"**Session ID:** `{st.session_state.session_id[:8]}...`")
 
+    st.markdown("### 🔑 Gemini API Key")
+    st.caption("Please securely enter your Gemini API Key to chat with the assistant.")
+    st.text_input(
+        "API Key", 
+        type="password", 
+        key="custom_api_key",
+        placeholder="AIzaSy..."
+    )
+
+    st.divider()
+
     # Diagnostic check
     if st.button("🔍 Run Diagnostics", use_container_width=True):
         with st.spinner("Checking..."):
@@ -324,7 +339,6 @@ I can help you:
     # Suggestion chips
     suggestions = [
         "Show me wireless headphones",
-        "What's under $50?",
         "Electronics deals",
         "Recommend a gift",
     ]
@@ -333,6 +347,9 @@ I can help you:
     for i, suggestion in enumerate(suggestions):
         with cols[i]:
             if st.button(suggestion, key=f"suggestion_{i}", use_container_width=True):
+                if not st.session_state.get("custom_api_key"):
+                    st.error("⚠️ Please enter your Gemini API Key in the sidebar first!")
+                    st.stop()
                 st.session_state.messages.append(
                     {"role": "user", "content": suggestion}
                 )
@@ -351,6 +368,10 @@ for msg in st.session_state.messages:
 
 # -- Chat Input --
 if user_input := st.chat_input("Ask about products, prices, or recommendations..."):
+    if not st.session_state.get("custom_api_key"):
+        st.error("⚠️ Please enter your Gemini API Key in the sidebar first!")
+        st.stop()
+
     # Display user message immediately
     st.session_state.messages.append({"role": "user", "content": user_input})
     with st.chat_message("user", avatar="👤"):
